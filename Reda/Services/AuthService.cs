@@ -101,11 +101,12 @@ namespace Reda.Services
             if (user == null) return "user not found";
 
             var code = await _context.Otps
+                .Where(o => o.Email == model.Email)
                 .OrderByDescending(o => o.CreatedAt)
                 .Select(o => o.Code)
                 .FirstOrDefaultAsync();
 
-            if (code != model.Code) return "code invaled";
+            if (code == null || code != model.Code) return "code invaled";
             return "Verified";
         }
 

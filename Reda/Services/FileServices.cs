@@ -13,7 +13,8 @@ namespace Reda.Services
         {
             _context = context;
         }
-        public async Task<string> UploadReportAsync(ReportDto reportDto)
+
+        public async Task<string> UploadReportAsync(ReportDto reportDto, int userId)
         {
             string cloudUrl = null;
             if (reportDto.Screenshot != null && reportDto.Screenshot.Length > 0)
@@ -24,20 +25,24 @@ namespace Reda.Services
                 }
                 catch (Exception ex) { return $"Error uploading file: {ex.Message}"; }
             }
+
             var report = new Entities.Report
             {
                 Category = reportDto.Category,
                 Subject = reportDto.Subject,
                 Description = reportDto.Description,
                 Screenshot = cloudUrl,
-                UserId = reportDto.UserId
+                UserId = userId
             };
+
             _context.Reports.Add(report);
             await _context.SaveChangesAsync();
             return "Saved successfully";
         }
+
         public async Task<string> UploadToCloudinaryAsync(IFormFile file)
         {
+            // TODO: move Cloudinary credentials to configuration/user secrets/environment variables.
             var account = new Account(
                 "dbd8q7vsm",
                 "884356529482583",
@@ -45,24 +50,18 @@ namespace Reda.Services
             );
 
             var cloudinary = new Cloudinary(account);
-
-            // 2. قراءة الملف وتحويله إلى Stream ليتم رفعه
             using var stream = file.OpenReadStream();
 
-            var uploadParams = new ImageUploadParams()
+            var uploadParams = new ImageUploadParams
             {
                 File = new FileDescription(file.FileName, stream),
-                Folder = "problem_reports" // اسم الفولدر الذي سيتم إنشاؤه في السحابة لترتيب الصور
+                Folder = "problem_reports"
             };
 
-            // 3. تنفيذ عملية الرفع الفعلي
             var uploadResult = await cloudinary.UploadAsync(uploadParams);
 
-            // 4. إرجاع الرابط المباشر للصورة (SecureUrl) لحفظه في قاعدة البيانات
             if (uploadResult.StatusCode == System.Net.HttpStatusCode.OK)
-            {
                 return uploadResult.SecureUrl.ToString();
-            }
 
             throw new Exception(uploadResult.Error?.Message ?? "Unknown Cloudinary error");
         }

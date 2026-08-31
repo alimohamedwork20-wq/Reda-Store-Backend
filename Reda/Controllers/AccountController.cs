@@ -67,6 +67,7 @@ namespace Reda.Controllers
             var result = await _service.AddProfileImage(image, User.GetUserId());
             if (result == "User not found") return NotFound(result);
             return Ok(result);
+
         }
 
         [HttpDelete("remove-profile-image")]

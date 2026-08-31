@@ -5,8 +5,7 @@ using Reda.Data;
 using Reda.Interfaces;
 using Reda.Services;
 using System.Text;
-using Telegram.Bot;
-using Telegram.Bot.Polling;
+
 
 var builder = WebApplication.CreateBuilder(args);
 

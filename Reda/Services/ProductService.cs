@@ -55,17 +55,9 @@ namespace Reda.Services
             var existingItem = cart.CartItems.FirstOrDefault(ci => ci.ProductId == productId);
 
             if (existingItem != null)
-            {
                 existingItem.Quantity++;
-            }
             else
-            {
-                cart.CartItems.Add(new CartItem
-                {
-                    ProductId = productId,
-                    Quantity = 1
-                });
-            }
+                cart.CartItems.Add(new CartItem { ProductId = productId, Quantity = 1 });
 
             await _context.SaveChangesAsync();
             return "Product added to cart successfully";
@@ -88,6 +80,24 @@ namespace Reda.Services
                 .ToList();
         }
 
+        public async Task<string> UpdateCartQuantity(int idUser, int idProduct, int quantity)
+        {
+            if (quantity < 1)
+                return "Quantity must be at least 1";
+
+            var cartItem = await _context.CartItems
+                .Include(ci => ci.Cart)
+                .FirstOrDefaultAsync(ci => ci.Cart.UserId == idUser && ci.ProductId == idProduct);
+
+            if (cartItem == null)
+                return "Product not found in your cart";
+
+            cartItem.Quantity = quantity;
+            await _context.SaveChangesAsync();
+
+            return "Cart quantity updated successfully";
+        }
+
         public async Task<string> DeleteProductInCart(int idUser, int idProduct)
         {
             var cart = await _context.Carts
@@ -103,7 +113,6 @@ namespace Reda.Services
 
             cart.CartItems.Remove(itemToRemove);
             await _context.SaveChangesAsync();
-
             return "Product removed from cart successfully";
         }
 
@@ -121,7 +130,6 @@ namespace Reda.Services
 
             cart.CartItems.Clear();
             await _context.SaveChangesAsync();
-
             return "All products removed from cart successfully";
         }
 
@@ -150,11 +158,7 @@ namespace Reda.Services
             if (favorite.FavoriteItems.Any(x => x.ProductId == idProduct))
                 return "Product is already in favorites";
 
-            favorite.FavoriteItems.Add(new FavoriteItems
-            {
-                ProductId = idProduct
-            });
-
+            favorite.FavoriteItems.Add(new FavoriteItems { ProductId = idProduct });
             await _context.SaveChangesAsync();
             return "Product added to Favorite successfully";
         }
@@ -174,7 +178,6 @@ namespace Reda.Services
 
             favorite.FavoriteItems.Remove(item);
             await _context.SaveChangesAsync();
-
             return "Product removed from Favorite successfully";
         }
 

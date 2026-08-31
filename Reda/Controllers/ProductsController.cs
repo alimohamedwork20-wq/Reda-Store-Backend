@@ -1,6 +1,5 @@
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
-using Reda.Dtos;
 using Reda.Helpers;
 using Reda.Interfaces;
 
@@ -38,11 +37,7 @@ namespace Reda.Controllers
         {
             var userId = User.GetUserId();
             var result = await _productService.AddProductToCart(productId, userId);
-
-            if (result == "Product added to cart successfully")
-                return Ok(result);
-
-            return BadRequest(result);
+            return result == "Product added to cart successfully" ? Ok(result) : BadRequest(result);
         }
 
         [Authorize]
@@ -50,8 +45,16 @@ namespace Reda.Controllers
         public async Task<IActionResult> GetProductsInCart()
         {
             var userId = User.GetUserId();
-            var result = await _productService.GetProductsInCart(userId);
-            return Ok(result);
+            return Ok(await _productService.GetProductsInCart(userId));
+        }
+
+        [Authorize]
+        [HttpPut("cart/{productId}/quantity/{quantity}")]
+        public async Task<IActionResult> UpdateCartQuantity(int productId, int quantity)
+        {
+            var userId = User.GetUserId();
+            var result = await _productService.UpdateCartQuantity(userId, productId, quantity);
+            return result == "Cart quantity updated successfully" ? Ok(result) : BadRequest(result);
         }
 
         [Authorize]
@@ -60,11 +63,7 @@ namespace Reda.Controllers
         {
             var userId = User.GetUserId();
             var result = await _productService.DeleteProductInCart(userId, productId);
-
-            if (result == "Product removed from cart successfully")
-                return Ok(result);
-
-            return BadRequest(result);
+            return result == "Product removed from cart successfully" ? Ok(result) : BadRequest(result);
         }
 
         [Authorize]
@@ -73,11 +72,7 @@ namespace Reda.Controllers
         {
             var userId = User.GetUserId();
             var result = await _productService.DeleteAllProductsInCart(userId);
-
-            if (result == "All products removed from cart successfully")
-                return Ok(result);
-
-            return BadRequest(result);
+            return result == "All products removed from cart successfully" ? Ok(result) : BadRequest(result);
         }
 
         [Authorize]
@@ -86,11 +81,7 @@ namespace Reda.Controllers
         {
             var userId = User.GetUserId();
             var result = await _productService.AddProductToFavorite(userId, productId);
-
-            if (result == "Product added to Favorite successfully")
-                return Ok(result);
-
-            return BadRequest(result);
+            return result == "Product added to Favorite successfully" ? Ok(result) : BadRequest(result);
         }
 
         [Authorize]
@@ -99,11 +90,7 @@ namespace Reda.Controllers
         {
             var userId = User.GetUserId();
             var result = await _productService.DeleteProductFromFavorite(userId, productId);
-
-            if (result == "Product removed from Favorite successfully")
-                return Ok(result);
-
-            return BadRequest(result);
+            return result == "Product removed from Favorite successfully" ? Ok(result) : BadRequest(result);
         }
 
         [Authorize]
@@ -111,8 +98,7 @@ namespace Reda.Controllers
         public async Task<IActionResult> GetProductFromFavorite()
         {
             var userId = User.GetUserId();
-            var result = await _productService.GetProductFromFavorite(userId);
-            return Ok(result);
+            return Ok(await _productService.GetProductFromFavorite(userId));
         }
 
         [HttpGet("products/search")]
@@ -121,8 +107,7 @@ namespace Reda.Controllers
             if (string.IsNullOrWhiteSpace(term))
                 return BadRequest("Search term cannot be empty.");
 
-            var products = await _productService.SearchProduct(term);
-            return Ok(products);
+            return Ok(await _productService.SearchProduct(term));
         }
     }
 }

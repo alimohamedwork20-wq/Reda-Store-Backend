@@ -9,9 +9,12 @@ namespace Reda.Services
     public class FileServices : IFileServices
     {
         private readonly AppDbContext _context;
-        public FileServices(AppDbContext context)
+        private readonly IConfiguration _configuration;
+
+        public FileServices(AppDbContext context, IConfiguration configuration)
         {
             _context = context;
+            _configuration = configuration;
         }
 
         public async Task<string> UploadReportAsync(ReportDto reportDto, int userId)
@@ -23,7 +26,10 @@ namespace Reda.Services
                 {
                     cloudUrl = await UploadToCloudinaryAsync(reportDto.Screenshot);
                 }
-                catch (Exception ex) { return $"Error uploading file: {ex.Message}"; }
+                catch (Exception ex)
+                {
+                    return $"Error uploading file: {ex.Message}";
+                }
             }
 
             var report = new Entities.Report
@@ -42,14 +48,20 @@ namespace Reda.Services
 
         public async Task<string> UploadToCloudinaryAsync(IFormFile file)
         {
-            // TODO: move Cloudinary credentials to configuration/user secrets/environment variables.
-            var account = new Account(
-                "dbd8q7vsm",
-                "884356529482583",
-                "NTZD2dYfmFE-MgkTddiHO8xTFaY"
-            );
+            var cloudName = _configuration["Cloudinary:CloudName"];
+            var apiKey = _configuration["Cloudinary:ApiKey"];
+            var apiSecret = _configuration["Cloudinary:ApiSecret"];
 
+            if (string.IsNullOrWhiteSpace(cloudName) ||
+                string.IsNullOrWhiteSpace(apiKey) ||
+                string.IsNullOrWhiteSpace(apiSecret))
+            {
+                throw new InvalidOperationException("Cloudinary configuration is missing.");
+            }
+
+            var account = new Account(cloudName, apiKey, apiSecret);
             var cloudinary = new Cloudinary(account);
+
             using var stream = file.OpenReadStream();
 
             var uploadParams = new ImageUploadParams

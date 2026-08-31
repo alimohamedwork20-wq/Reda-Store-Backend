@@ -33,7 +33,7 @@ namespace Reda.Controllers
             try
             {
                 var result = await _userService.RegisterAsync(model);
-                return Ok(new { User = result.Name, Email = result.Email, Id = result.Id });
+                return Ok(new { User = result.Name, Email = result.Email });
             }
             catch (InvalidOperationException ex) { return BadRequest(new { Message = ex.Message }); }
             catch (Exception) { return StatusCode(500, new { Message = "An unexpected error occurred." }); }

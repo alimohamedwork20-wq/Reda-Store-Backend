@@ -97,8 +97,7 @@ namespace Reda.Controllers
         {
             var userId = User.GetUserId();
             var result = await _productService.GetProductFromFavorite(userId);
-            if (result != null) return Ok(result);
-            return NotFound();
+            return Ok(result);
         }
 
         [HttpGet("products/search")]

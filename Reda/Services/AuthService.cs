@@ -54,6 +54,7 @@ namespace Reda.Services
                 Phone = user.Phone,
                 Avatar = user.ProfileImageUrl,
                 Two_Factor = user.TwoFactor,
+                Status = user.Status
             };
         }
 

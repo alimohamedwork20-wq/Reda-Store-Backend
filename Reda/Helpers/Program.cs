@@ -48,7 +48,7 @@ builder.Services.AddCors(options =>
 {
     options.AddPolicy("AllowReact", policy =>
     {
-        policy.WithOrigins(new[] { "http://localhost:3000", "http://localhost:3001" })
+        policy.WithOrigins(new[] { "http://localhost:3000", "https://reda-store-five.vercel.app" })
               .AllowAnyMethod()
               .AllowAnyHeader();
     });

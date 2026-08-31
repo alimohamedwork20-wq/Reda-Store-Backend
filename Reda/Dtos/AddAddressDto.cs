@@ -1,5 +1,4 @@
-﻿using Reda.Entities;
-using System.ComponentModel;
+﻿using System.ComponentModel;
 
 namespace Reda.Dtos
 {
@@ -11,6 +10,5 @@ namespace Reda.Dtos
         public string Phone { get; set; }
         [DefaultValue(false)]
         public bool IsDefault { get; set; } = false;
-        public int UserId { get; set; }
     }
 }

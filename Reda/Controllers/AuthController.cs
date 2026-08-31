@@ -49,9 +49,14 @@ namespace Reda.Controllers
                 var result = await _sendCodeToEmailService.SendCodeToEmailAsync(model.Email);
                 return Ok(new { Message = result });
             }
-            catch (Exception)
+            catch (Exception ex)
             {
-                return StatusCode(500, new { Message = "Failed to send OTP email." });
+                return StatusCode(500, new
+                {
+                    Message = "Failed to send OTP email.",
+                    Error = ex.Message,
+                    InnerError = ex.InnerException?.Message
+                });
             }
         }
 

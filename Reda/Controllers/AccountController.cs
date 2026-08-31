@@ -12,12 +12,10 @@ namespace Reda.Controllers
     public class AccountController : ControllerBase
     {
         private readonly IAccountService _service;
-        private readonly INotificationService _notificationService;
 
-        public AccountController(IAccountService service, INotificationService notificationService)
+        public AccountController(IAccountService service)
         {
             _service = service;
-            _notificationService = notificationService;
         }
 
         [HttpPost("change-name")]

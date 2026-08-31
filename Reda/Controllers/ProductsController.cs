@@ -1,4 +1,4 @@
-﻿using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Reda.Dtos;
 using Reda.Helpers;
@@ -21,8 +21,7 @@ namespace Reda.Controllers
         public async Task<IActionResult> GetProductByCategory(string category)
         {
             var result = await _productService.GetProductsByCategoryAsync(category);
-            if (result != null) return Ok(result);
-            return NotFound();
+            return Ok(result);
         }
 
         [HttpGet("product/{id}")]
@@ -30,7 +29,7 @@ namespace Reda.Controllers
         {
             var result = await _productService.GetProductByIdAsync(id);
             if (result != null) return Ok(result);
-            return NotFound();
+            return NotFound("Product not found");
         }
 
         [Authorize]
@@ -39,7 +38,11 @@ namespace Reda.Controllers
         {
             var userId = User.GetUserId();
             var result = await _productService.AddProductToCart(productId, userId);
-            return Ok(result);
+
+            if (result == "Product added to cart successfully")
+                return Ok(result);
+
+            return BadRequest(result);
         }
 
         [Authorize]
@@ -57,8 +60,11 @@ namespace Reda.Controllers
         {
             var userId = User.GetUserId();
             var result = await _productService.DeleteProductInCart(userId, productId);
-            if (result != null) return Ok(result);
-            return NotFound();
+
+            if (result == "Product removed from cart successfully")
+                return Ok(result);
+
+            return BadRequest(result);
         }
 
         [Authorize]
@@ -67,8 +73,11 @@ namespace Reda.Controllers
         {
             var userId = User.GetUserId();
             var result = await _productService.DeleteAllProductsInCart(userId);
-            if (result != null) return Ok();
-            return NotFound();
+
+            if (result == "All products removed from cart successfully")
+                return Ok(result);
+
+            return BadRequest(result);
         }
 
         [Authorize]
@@ -77,8 +86,11 @@ namespace Reda.Controllers
         {
             var userId = User.GetUserId();
             var result = await _productService.AddProductToFavorite(userId, productId);
-            if (result != null) return Ok(result);
-            return BadRequest();
+
+            if (result == "Product added to Favorite successfully")
+                return Ok(result);
+
+            return BadRequest(result);
         }
 
         [Authorize]
@@ -87,8 +99,11 @@ namespace Reda.Controllers
         {
             var userId = User.GetUserId();
             var result = await _productService.DeleteProductFromFavorite(userId, productId);
-            if (result != null) return Ok(result);
-            return BadRequest();
+
+            if (result == "Product removed from Favorite successfully")
+                return Ok(result);
+
+            return BadRequest(result);
         }
 
         [Authorize]

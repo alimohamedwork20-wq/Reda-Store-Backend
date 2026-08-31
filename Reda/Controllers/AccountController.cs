@@ -89,9 +89,7 @@ namespace Reda.Controllers
         [HttpPost("add-address")]
         public async Task<IActionResult> AddAddress([FromBody] AddAddressDto model)
         {
-            var userId = User.GetUserId();
-            model.UserId = userId;
-            var result = await _service.AddAddressAsync(model);
+            var result = await _service.AddAddressAsync(model, User.GetUserId());
             if (result == "User not found") return NotFound(result);
             return Ok(result);
         }
@@ -99,8 +97,7 @@ namespace Reda.Controllers
         [HttpDelete("delete-address")]
         public async Task<IActionResult> DeleteAddress([FromBody] ChangeAndDeleteAddressDto model)
         {
-            model.UserId = User.GetUserId();
-            var result = await _service.DeleteAddressAsync(model);
+            var result = await _service.DeleteAddressAsync(model.AddressId, User.GetUserId());
             if (result == "User not found" || result == "Address not found") return NotFound(result);
             return Ok(result);
         }
@@ -108,8 +105,7 @@ namespace Reda.Controllers
         [HttpPost("set-default-address")]
         public async Task<IActionResult> SetDefaultAddress([FromBody] ChangeAndDeleteAddressDto model)
         {
-            model.UserId = User.GetUserId();
-            var result = await _service.SetDefaultAddressAsync(model);
+            var result = await _service.SetDefaultAddressAsync(model.AddressId, User.GetUserId());
             if (result == "No addresses found for this user" || result == "Address not found") return NotFound(result);
             return Ok(result);
         }

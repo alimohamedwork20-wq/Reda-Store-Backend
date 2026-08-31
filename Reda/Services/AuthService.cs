@@ -50,7 +50,6 @@ namespace Reda.Services
                 Name = user.Name,
                 Role = user.Role,
                 Email = user.Email,
-                Id = user.Id,
                 Phone = user.Phone,
                 Avatar = user.ProfileImageUrl,
                 Two_Factor = user.TwoFactor,

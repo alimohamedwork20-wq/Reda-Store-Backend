@@ -32,12 +32,10 @@ namespace Reda.Services
 
         public async Task<string> AddProductToCart(int productId, int idUser)
         {
-            var userExists = await _context.Users.AnyAsync(u => u.Id == idUser);
-            if (!userExists)
+            if (!await _context.Users.AnyAsync(u => u.Id == idUser))
                 return "User not found";
 
-            var productExists = await _context.Products.AnyAsync(p => p.Id == productId);
-            if (!productExists)
+            if (!await _context.Products.AnyAsync(p => p.Id == productId))
                 return "Product not found";
 
             var cart = await _context.Carts
@@ -103,7 +101,7 @@ namespace Reda.Services
             if (itemToRemove == null)
                 return "Product not found in your cart";
 
-            _context.CartItems.Remove(itemToRemove);
+            cart.CartItems.Remove(itemToRemove);
             await _context.SaveChangesAsync();
 
             return "Product removed from cart successfully";
@@ -121,7 +119,7 @@ namespace Reda.Services
             if (cart.CartItems.Count == 0)
                 return "Cart is already empty";
 
-            _context.CartItems.RemoveRange(cart.CartItems);
+            cart.CartItems.Clear();
             await _context.SaveChangesAsync();
 
             return "All products removed from cart successfully";
@@ -129,12 +127,10 @@ namespace Reda.Services
 
         public async Task<string> AddProductToFavorite(int idUser, int idProduct)
         {
-            var userExists = await _context.Users.AnyAsync(u => u.Id == idUser);
-            if (!userExists)
+            if (!await _context.Users.AnyAsync(u => u.Id == idUser))
                 return "User not found";
 
-            var productExists = await _context.Products.AnyAsync(p => p.Id == idProduct);
-            if (!productExists)
+            if (!await _context.Products.AnyAsync(p => p.Id == idProduct))
                 return "Product not found";
 
             var favorite = await _context.Favorites
@@ -151,8 +147,7 @@ namespace Reda.Services
                 _context.Favorites.Add(favorite);
             }
 
-            var exists = favorite.FavoriteItems.Any(x => x.ProductId == idProduct);
-            if (exists)
+            if (favorite.FavoriteItems.Any(x => x.ProductId == idProduct))
                 return "Product is already in favorites";
 
             favorite.FavoriteItems.Add(new FavoriteItems
@@ -177,7 +172,7 @@ namespace Reda.Services
             if (item == null)
                 return "Product not found in favorites";
 
-            _context.FavoriteItems.Remove(item);
+            favorite.FavoriteItems.Remove(item);
             await _context.SaveChangesAsync();
 
             return "Product removed from Favorite successfully";

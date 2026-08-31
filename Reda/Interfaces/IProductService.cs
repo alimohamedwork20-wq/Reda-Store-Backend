@@ -1,4 +1,4 @@
-﻿using Reda.Entities;
+using Reda.Entities;
 
 namespace Reda.Interfaces
 {
@@ -6,13 +6,14 @@ namespace Reda.Interfaces
     {
         Task<List<Product>> GetProductsByCategoryAsync(string slug);
         Task<Product> GetProductByIdAsync(int id);
-        Task<string> AddProductToCart(int productId,int IdUser);
-        Task<List<Product>> GetProductsInCart(int IdUser);
-        Task<string> DeleteProductInCart(int IdUser,int IdProduct);
+        Task<string> AddProductToCart(int productId, int idUser);
+        Task<List<Product>> GetProductsInCart(int idUser);
+        Task<string> UpdateCartQuantity(int idUser, int idProduct, int quantity);
+        Task<string> DeleteProductInCart(int idUser, int idProduct);
         Task<string> DeleteAllProductsInCart(int idUser);
-        Task<string> AddProductToFavorite(int productId, int IdUser);
-        Task<string> DeleteProductFromFavorite(int productId, int IdUser);
-        Task<List<Product>> GetProductFromFavorite(int UserId);
+        Task<string> AddProductToFavorite(int idUser, int idProduct);
+        Task<string> DeleteProductFromFavorite(int idUser, int idProduct);
+        Task<List<Product>> GetProductFromFavorite(int userId);
         Task<List<Product>> SearchProduct(string name);
     }
 }

@@ -1,9 +1,12 @@
+using FluentValidation;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.IdentityModel.Tokens;
 using Reda.Data;
 using Reda.Interfaces;
+using Reda.Middlware;
 using Reda.Services;
+using Reda.Validators;
 using System.Text;
 
 
@@ -18,7 +21,7 @@ builder.Services.AddControllers()
 
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen();
-
+builder.Services.AddValidatorsFromAssemblyContaining<ValidationRegister>();
 // 2. جلب المفتاح السري من ملف appsettings.json ديناميكياً وضبط الـ JWT Authentication
 var jwtKey = builder.Configuration["Jwt:Key"];
 builder.Services.AddAuthentication(options =>
@@ -56,6 +59,7 @@ builder.Services.AddCors(options =>
 // 5. تسجيل الخدمات (Dependency Injection)
 builder.Services.AddScoped<IAuthService, AuthService>();
 builder.Services.AddScoped<ITokenService, TokenService>();
+builder.Services.AddProblemDetails();
 builder.Services.AddScoped<IProductService, ProductService>();
 builder.Services.AddScoped<IAccountService, AccountService>();
 builder.Services.AddScoped<INotificationService, EmailNotificationService>();
@@ -72,7 +76,7 @@ if (app.Environment.IsDevelopment())
 }
 
 app.UseHttpsRedirection();
-
+app.UseMiddleware<ExceptionMiddleware>();
 // تفعيل الـ CORS بالسياسة المحددة (قبل الـ Authentication)
 app.UseCors("AllowReact");
 

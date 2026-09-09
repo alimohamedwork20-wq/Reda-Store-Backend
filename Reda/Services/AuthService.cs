@@ -1,7 +1,9 @@
-﻿using Microsoft.EntityFrameworkCore;
+﻿using FluentValidation;
+using Microsoft.EntityFrameworkCore;
 using Reda.Data;
 using Reda.Dtos;
 using Reda.Entities;
+using Reda.Exceptions;
 using Reda.Interfaces;
 
 namespace Reda.Services
@@ -11,39 +13,66 @@ namespace Reda.Services
         private readonly AppDbContext _context;
         private readonly ITokenService _token;
         private readonly ISendCodeToEmail _sendCodeToEmail;
-
-        public AuthService(AppDbContext context, ITokenService token, ISendCodeToEmail sendCodeToEmail)
+        private readonly IValidator<RegisterDto> _validatorR;
+        private readonly IValidator<LoginDto> _validatorL;
+        public AuthService(
+            AppDbContext context,
+            ITokenService token,
+            ISendCodeToEmail sendCodeToEmail,   
+            IValidator<RegisterDto> validatorR,
+            IValidator<LoginDto> validatorL
+            )
         {
             _context = context;
             _token = token;
             _sendCodeToEmail = sendCodeToEmail;
+            _validatorR = validatorR;
+            _validatorL = validatorL;
         }
 
-        public async Task<object> LoginAsync(string EmailOrPhone, string password)
+        public async Task<object> LoginAsync(LoginDto model)
         {
-            EmailOrPhone = EmailOrPhone?.Trim();
-            password = password?.Trim();
+            await _validatorL.ValidateAndThrowAsync(model);
+            model.EmailOrPhone = model.EmailOrPhone?.Trim();
+            model.Password = model.Password?.Trim();
 
-            if (string.IsNullOrEmpty(EmailOrPhone) || string.IsNullOrEmpty(password))
-                return null;
+            if (string.IsNullOrEmpty(model.EmailOrPhone) ||
+                string.IsNullOrEmpty(model.Password))
+            {
+                throw new UnauthorizedException(
+                    "Invalid email/phone or password.");
+            }
 
-            bool isEmail = IsValidEmail(EmailOrPhone);
+            bool isEmail = IsValidEmail(model.EmailOrPhone);
+
             User user;
 
             if (isEmail)
             {
-                user = await _context.Users.FirstOrDefaultAsync(u => u.Email == EmailOrPhone);
+                user = await _context.Users
+                    .FirstOrDefaultAsync(u => u.Email == model.EmailOrPhone);
             }
             else
             {
-                string phoneDigits = new string(EmailOrPhone.Where(char.IsDigit).ToArray());
-                user = await _context.Users.FirstOrDefaultAsync(u => u.Phone == phoneDigits);
+                string phoneDigits = new string(
+                    model.EmailOrPhone.Where(char.IsDigit).ToArray()
+                );
+
+                user = await _context.Users
+                    .FirstOrDefaultAsync(u => u.Phone == phoneDigits);
             }
 
-            if (user == null || !BCrypt.Net.BCrypt.Verify(password, user.PasswordHash))
-                return null;
+            if (user == null ||
+                !BCrypt.Net.BCrypt.Verify(
+                    model.Password,
+                    user.PasswordHash))
+            {
+                throw new UnauthorizedException(
+                    "Invalid email/phone or password.");
+            }
 
             var token = _token.CreateToken(user);
+
             return new
             {
                 Token = token,
@@ -72,10 +101,17 @@ namespace Reda.Services
 
         public async Task<User> RegisterAsync(RegisterDto model)
         {
-            var exists = await _context.Users.AnyAsync(u => u.Email == model.Email);
-            if (exists) throw new InvalidOperationException("Email is already registered.");
+            await _validatorR.ValidateAndThrowAsync(model);
+            var exists = await _context.Users
+                .AnyAsync(u => u.Email == model.Email);
 
-            string hashedPassword = BCrypt.Net.BCrypt.HashPassword(model.Password);
+            if (exists)
+                throw new BadRequestException(
+                    "Email is already registered.");
+            
+            string hashedPassword =
+                BCrypt.Net.BCrypt.HashPassword(model.Password);
+
             var newUser = new User
             {
                 Name = model.Name,
@@ -84,68 +120,107 @@ namespace Reda.Services
             };
 
             _context.Users.Add(newUser);
+
             await _context.SaveChangesAsync();
+
             return newUser;
         }
 
         public async Task<string> SendCodeToEmailAsync(string email)
         {
-            var user = await _context.Users.FirstOrDefaultAsync(u => u.Email == email);
-            if (user == null) return null;
-            return await _sendCodeToEmail.SendCodeToEmailAsync(email);
+            var user = await _context.Users
+                .FirstOrDefaultAsync(u => u.Email == email);
+
+            if (user == null)
+                throw new NotFoundException("User not found.");
+
+            return await _sendCodeToEmail
+                .SendCodeToEmailAsync(email);
         }
 
-        public async Task<string> CheckOtpToChangePasswordAsync(CheckOtpToChangePasswordDto model)
+        public async Task<bool> CheckOtpAsync(CheckOtpDto model)
         {
-            var user = await _context.Users.FirstOrDefaultAsync(u => u.Email == model.Email);
-            if (user == null) return "user not found";
-
             var code = await _context.Otps
                 .Where(o => o.Email == model.Email)
                 .OrderByDescending(o => o.CreatedAt)
-                .Select(o => o.Code)
                 .FirstOrDefaultAsync();
 
-            if (code == null || code != model.Code) return "code invaled";
-            return "Verified";
+            if (code == null ||
+                code.Code != model.Code ||
+                code.IsUsed)
+            {
+                throw new BadRequestException(
+                    "Invalid OTP code.");
+            }
+            code.IsUsed = true;
+            await _context.SaveChangesAsync();
+            return true;
         }
 
         public async Task<string> ResetPasswordAsync(ResetPasswordDto model)
         {
-            var user = await _context.Users.FirstOrDefaultAsync(u => u.Email == model.Email);
-            if (user == null) return "user not found";
+            var user = await _context.Users
+                .FirstOrDefaultAsync(u => u.Email == model.Email);
 
-            bool isSamePassword = BCrypt.Net.BCrypt.Verify(model.NewPassword, user.PasswordHash);
-            if (isSamePassword) return "The password itself cannot be changed";
+            if (user == null)
+                throw new NotFoundException("User not found.");
 
-            user.PasswordHash = BCrypt.Net.BCrypt.HashPassword(model.NewPassword);
+            bool isSamePassword =
+                BCrypt.Net.BCrypt.Verify(
+                    model.NewPassword,
+                    user.PasswordHash);
+
+            if (isSamePassword)
+                throw new BadRequestException(
+                    "The new password cannot be the same as the old password.");
+
+            user.PasswordHash =
+                BCrypt.Net.BCrypt.HashPassword(model.NewPassword);
+
             await _context.SaveChangesAsync();
-            return "The password was successfully updated";
+
+            return "The password was successfully updated.";
         }
 
         public async Task<string> TurnOnTwoFactorAsync(int userId)
         {
-            var user = await _context.Users.FirstOrDefaultAsync(u => u.Id == userId);
-            if (user == null) return "user not found";
+            var user = await _context.Users
+                .FirstOrDefaultAsync(u => u.Id == userId);
+
+            if (user == null)
+                throw new NotFoundException("User not found.");
 
             user.TwoFactor = true;
+
             await _context.SaveChangesAsync();
+
             return "Two-factor authentication has been enabled.";
         }
 
         public async Task<string> TurnOffTwoFactorAsync(int userId)
         {
-            var user = await _context.Users.FirstOrDefaultAsync(u => u.Id == userId);
-            if (user == null) return "user not found";
+            var user = await _context.Users
+                .FirstOrDefaultAsync(u => u.Id == userId);
+
+            if (user == null)
+                throw new NotFoundException("User not found.");
 
             user.TwoFactor = false;
+
             await _context.SaveChangesAsync();
+
             return "Two-factor authentication has been disabled.";
         }
 
         public async Task<User> GetCurrentUserAsync(int userId)
         {
-            return await _context.Users.FirstOrDefaultAsync(u => u.Id == userId);
+            var user = await _context.Users
+                .FirstOrDefaultAsync(u => u.Id == userId);
+
+            if (user == null)
+                throw new NotFoundException("User not found.");
+
+            return user;
         }
     }
 }

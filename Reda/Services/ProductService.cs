@@ -2,6 +2,7 @@ using Microsoft.EntityFrameworkCore;
 using Reda.Data;
 using Reda.Dtos;
 using Reda.Entities;
+using Reda.Exceptions;
 using Reda.Interfaces;
 
 namespace Reda.Services
@@ -25,19 +26,24 @@ namespace Reda.Services
 
         public async Task<Product> GetProductByIdAsync(int id)
         {
-            return await _context.Products
+            var product = await _context.Products
                 .Include(p => p.Category)
                 .Include(p => p.Images)
                 .FirstOrDefaultAsync(p => p.Id == id);
+
+            if (product == null)
+                throw new NotFoundException("Product not found.");
+
+            return product;
         }
 
         public async Task<string> AddProductToCart(int productId, int userId)
         {
             if (!await _context.Users.AnyAsync(u => u.Id == userId))
-                return "User not found";
+                throw new NotFoundException("User not found.");
 
             if (!await _context.Products.AnyAsync(p => p.Id == productId))
-                return "Product not found";
+                throw new NotFoundException("Product not found.");
 
             var cart = await _context.Carts
                 .Include(c => c.CartItems)
@@ -50,18 +56,29 @@ namespace Reda.Services
                     UserId = userId,
                     CartItems = new List<CartItem>()
                 };
+
                 _context.Carts.Add(cart);
             }
 
-            var existingItem = cart.CartItems.FirstOrDefault(ci => ci.ProductId == productId);
+            var existingItem = cart.CartItems
+                .FirstOrDefault(ci => ci.ProductId == productId);
 
             if (existingItem != null)
+            {
                 existingItem.Quantity++;
+            }
             else
-                cart.CartItems.Add(new CartItem { ProductId = productId, Quantity = 1 });
+            {
+                cart.CartItems.Add(new CartItem
+                {
+                    ProductId = productId,
+                    Quantity = 1
+                });
+            }
 
             await _context.SaveChangesAsync();
-            return "Product added to cart successfully";
+
+            return "Product added to cart successfully.";
         }
 
         public async Task<List<CartProductDto>> GetProductsInCart(int userId)
@@ -92,40 +109,56 @@ namespace Reda.Services
                 .ToList();
         }
 
-        public async Task<string> UpdateCartQuantity(int userId, int productId, int quantity)
+        public async Task<string> UpdateCartQuantity(
+            int userId,
+            int productId,
+            int quantity)
         {
             if (quantity < 1)
-                return "Quantity must be at least 1";
+                throw new BadRequestException(
+                    "Quantity must be at least 1.");
 
             var cartItem = await _context.CartItems
                 .Include(ci => ci.Cart)
-                .FirstOrDefaultAsync(ci => ci.Cart.UserId == userId && ci.ProductId == productId);
+                .FirstOrDefaultAsync(ci =>
+                    ci.Cart.UserId == userId &&
+                    ci.ProductId == productId);
 
             if (cartItem == null)
-                return "Product not found in your cart";
+                throw new NotFoundException(
+                    "Product not found in your cart.");
 
             cartItem.Quantity = quantity;
+
             await _context.SaveChangesAsync();
 
-            return "Cart quantity updated successfully";
+            return "Cart quantity updated successfully.";
         }
 
-        public async Task<string> DeleteProductInCart(int userId, int productId)
+        public async Task<string> DeleteProductInCart(
+            int userId,
+            int productId)
         {
             var cart = await _context.Carts
                 .Include(c => c.CartItems)
                 .FirstOrDefaultAsync(c => c.UserId == userId);
 
             if (cart == null)
-                return "Cart not found for this user";
+                throw new NotFoundException(
+                    "Cart not found for this user.");
 
-            var itemToRemove = cart.CartItems.FirstOrDefault(ci => ci.ProductId == productId);
+            var itemToRemove = cart.CartItems
+                .FirstOrDefault(ci => ci.ProductId == productId);
+
             if (itemToRemove == null)
-                return "Product not found in your cart";
+                throw new NotFoundException(
+                    "Product not found in your cart.");
 
             cart.CartItems.Remove(itemToRemove);
+
             await _context.SaveChangesAsync();
-            return "Product removed from cart successfully";
+
+            return "Product removed from cart successfully.";
         }
 
         public async Task<string> DeleteAllProductsInCart(int userId)
@@ -135,23 +168,29 @@ namespace Reda.Services
                 .FirstOrDefaultAsync(c => c.UserId == userId);
 
             if (cart == null)
-                return "Cart not found for this user";
+                throw new NotFoundException(
+                    "Cart not found for this user.");
 
             if (cart.CartItems.Count == 0)
-                return "Cart is already empty";
+                throw new BadRequestException(
+                    "Cart is already empty.");
 
             cart.CartItems.Clear();
+
             await _context.SaveChangesAsync();
-            return "All products removed from cart successfully";
+
+            return "All products removed from cart successfully.";
         }
 
-        public async Task<string> AddProductToFavorite(int userId, int productId)
+        public async Task<string> AddProductToFavorite(
+            int userId,
+            int productId)
         {
             if (!await _context.Users.AnyAsync(u => u.Id == userId))
-                return "User not found";
+                throw new NotFoundException("User not found.");
 
             if (!await _context.Products.AnyAsync(p => p.Id == productId))
-                return "Product not found";
+                throw new NotFoundException("Product not found.");
 
             var favorite = await _context.Favorites
                 .Include(f => f.FavoriteItems)
@@ -164,33 +203,52 @@ namespace Reda.Services
                     UserId = userId,
                     FavoriteItems = new List<FavoriteItems>()
                 };
+
                 _context.Favorites.Add(favorite);
             }
 
-            if (favorite.FavoriteItems.Any(x => x.ProductId == productId))
-                return "Product is already in favorites";
+            if (favorite.FavoriteItems
+                .Any(x => x.ProductId == productId))
+            {
+                throw new BadRequestException(
+                    "Product is already in favorites.");
+            }
 
-            favorite.FavoriteItems.Add(new FavoriteItems { ProductId = productId });
+            favorite.FavoriteItems.Add(
+                new FavoriteItems
+                {
+                    ProductId = productId
+                });
+
             await _context.SaveChangesAsync();
-            return "Product added to Favorite successfully";
+
+            return "Product added to Favorite successfully.";
         }
 
-        public async Task<string> DeleteProductFromFavorite(int userId, int productId)
+        public async Task<string> DeleteProductFromFavorite(
+            int userId,
+            int productId)
         {
             var favorite = await _context.Favorites
                 .Include(f => f.FavoriteItems)
                 .FirstOrDefaultAsync(f => f.UserId == userId);
 
             if (favorite == null)
-                return "Favorite list not found for this user";
+                throw new NotFoundException(
+                    "Favorite list not found for this user.");
 
-            var item = favorite.FavoriteItems.FirstOrDefault(x => x.ProductId == productId);
+            var item = favorite.FavoriteItems
+                .FirstOrDefault(x => x.ProductId == productId);
+
             if (item == null)
-                return "Product not found in favorites";
+                throw new NotFoundException(
+                    "Product not found in favorites.");
 
             favorite.FavoriteItems.Remove(item);
+
             await _context.SaveChangesAsync();
-            return "Product removed from Favorite successfully";
+
+            return "Product removed from Favorite successfully.";
         }
 
         public async Task<List<Product>> GetProductFromFavorite(int userId)

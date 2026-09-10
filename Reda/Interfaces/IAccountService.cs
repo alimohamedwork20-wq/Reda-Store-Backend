@@ -16,5 +16,6 @@ namespace Reda.Interfaces
         Task<string> AddAddressAsync(AddAddressDto address, int userId);
         Task<string> DeleteAddressAsync(int addressId, int userId);
         Task<string> SetDefaultAddressAsync(int addressId, int userId);
+        Task<string> SubmitContactFormAsync(AddContactDto contact);
     }
 }

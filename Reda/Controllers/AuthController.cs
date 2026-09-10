@@ -44,8 +44,7 @@ namespace Reda.Controllers
         }
 
         [HttpPost("send-otp")]
-        public async Task<IActionResult> SendOtp(
-            [FromBody] SendOtpDto model)
+        public async Task<IActionResult> SendOtp([FromBody] SendOtpDto model)
         {
             if (model == null ||
                 string.IsNullOrWhiteSpace(model.Email))
@@ -58,7 +57,7 @@ namespace Reda.Controllers
 
             var result =
                 await _sendCodeToEmailService
-                    .SendCodeToEmailAsync(model.Email);
+                    .SendCodeToEmailAsync(model.Email, model.Action);
 
             return Ok(new
             {
@@ -72,7 +71,7 @@ namespace Reda.Controllers
         {
             var result =
                 await _userService.SendCodeToEmailAsync(
-                    model.Email);
+                    model.Email, "ResetPassword");
 
             return Ok(result);
         }

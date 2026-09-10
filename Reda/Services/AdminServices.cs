@@ -7,22 +7,16 @@ using Reda.Interfaces;
 
 namespace Reda.Services
 {
-    public class WebServices : IWebServices
+    public class AdminServices : IAdminServices
     {
         private readonly AppDbContext _context;
 
-        public WebServices(AppDbContext context)
+        public AdminServices(AppDbContext context)
         {
             _context = context;
         }
 
-        public async Task<string> SubmitContactFormAsync(Contact contact)
-        {
-            await _context.Contacts.AddAsync(contact);
-            await _context.SaveChangesAsync();
-
-            return "Contact form submitted successfully.";
-        }
+        
 
         public async Task<List<UserDto>> GetAllUsersAsync()
         {
@@ -38,7 +32,7 @@ namespace Reda.Services
                 .ToListAsync();
         }
 
-        public async Task<string> UpdateUserAsync(UserDto userDto)
+        public async Task<string> UpdateUserAsync(UpdateUserDto userDto)
         {
             var user = await _context.Users.FindAsync(userDto.Id);
 
@@ -86,7 +80,7 @@ namespace Reda.Services
             return "User deleted successfully.";
         }
 
-        public async Task<string> AddUserAsync(UserDto userDto)
+        public async Task<string> AddUserAsync(AddUserDto userDto)
         {
             var emailExists = await _context.Users
                 .AnyAsync(u => u.Email == userDto.Email);

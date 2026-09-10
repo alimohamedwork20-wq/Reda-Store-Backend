@@ -3,6 +3,7 @@ using Microsoft.AspNetCore.Mvc;
 using Reda.Dtos;
 using Reda.Helpers;
 using Reda.Interfaces;
+using Reda.Services;
 
 namespace Reda.Controllers
 {
@@ -12,10 +13,12 @@ namespace Reda.Controllers
     public class AccountController : ControllerBase
     {
         private readonly IAccountService _service;
+        private readonly IFileServices _fileServices;
 
-        public AccountController(IAccountService service)
+        public AccountController(IAccountService service, IFileServices fileServices)
         {
             _service = service;
+            _fileServices = fileServices;
         }
 
         [HttpPost("change-name")]
@@ -136,6 +139,25 @@ namespace Reda.Controllers
                 model.AddressId,
                 User.GetUserId()
             );
+
+            return Ok(result);
+        }
+        [HttpPost("submit-contact-form")]
+        public async Task<IActionResult> SubmitContactForm([FromBody] AddContactDto contact)
+        {
+            var result =
+                await _service.SubmitContactFormAsync(contact);
+
+            return Ok(result);
+        }
+
+        [HttpPost("submit-report")]
+        public async Task<IActionResult> SubmitReport([FromForm] ReportDto reportDto)
+        {
+            var result =
+                await _fileServices.UploadReportAsync(
+                    reportDto,
+                    User.GetUserId());
 
             return Ok(result);
         }

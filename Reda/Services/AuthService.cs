@@ -70,7 +70,11 @@ namespace Reda.Services
                 throw new UnauthorizedException(
                     "Invalid email/phone or password.");
             }
-
+            if(user.Status == false)
+            {
+                throw new UnauthorizedException(
+                    "Your account is inactive. Please contact support.");
+            }
             var token = _token.CreateToken(user);
 
             return new
@@ -126,7 +130,7 @@ namespace Reda.Services
             return newUser;
         }
 
-        public async Task<string> SendCodeToEmailAsync(string email)
+        public async Task<string> SendCodeToEmailAsync(string email,string action)
         {
             var user = await _context.Users
                 .FirstOrDefaultAsync(u => u.Email == email);
@@ -135,19 +139,19 @@ namespace Reda.Services
                 throw new NotFoundException("User not found.");
 
             return await _sendCodeToEmail
-                .SendCodeToEmailAsync(email);
+                .SendCodeToEmailAsync(email, action);
         }
 
         public async Task<bool> CheckOtpAsync(CheckOtpDto model)
         {
             var code = await _context.Otps
-                .Where(o => o.Email == model.Email)
+                .Where(o => o.Email == model.Email && o.Action == model.Action)
                 .OrderByDescending(o => o.CreatedAt)
                 .FirstOrDefaultAsync();
 
             if (code == null ||
                 code.Code != model.Code ||
-                code.IsUsed)
+                code.IsUsed || DateTime.UtcNow > code.CreatedAt.AddMinutes(10))
             {
                 throw new BadRequestException(
                     "Invalid OTP code.");
@@ -159,6 +163,14 @@ namespace Reda.Services
 
         public async Task<string> ResetPasswordAsync(ResetPasswordDto model)
         {
+            var code = await _context.Otps
+                            .Where(o => o.Email == model.Email && o.Action == "resetPassword")
+                            .OrderByDescending(o => o.CreatedAt)
+                            .FirstOrDefaultAsync();
+            if(code == null || !code.IsUsed)
+            {
+                throw new BadRequestException("Invalid");
+            }
             var user = await _context.Users
                 .FirstOrDefaultAsync(u => u.Email == model.Email);
 
@@ -176,7 +188,7 @@ namespace Reda.Services
 
             user.PasswordHash =
                 BCrypt.Net.BCrypt.HashPassword(model.NewPassword);
-
+            _context.Otps.Remove(code);
             await _context.SaveChangesAsync();
 
             return "The password was successfully updated.";
@@ -212,10 +224,9 @@ namespace Reda.Services
             return "Two-factor authentication has been disabled.";
         }
 
-        public async Task<User> GetCurrentUserAsync(int userId)
+        public async Task<object> GetCurrentUserAsync(int userId)
         {
-            var user = await _context.Users
-                .FirstOrDefaultAsync(u => u.Id == userId);
+            var user = await _context.Users.Select(u=> new { u.Id, u.Name, u.Email, u.TwoFactor,u.Status,u.ProfileImageUrl,u.Role,u.Phone}).FirstOrDefaultAsync(u => u.Id == userId);
 
             if (user == null)
                 throw new NotFoundException("User not found.");

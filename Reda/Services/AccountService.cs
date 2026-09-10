@@ -256,5 +256,20 @@ namespace Reda.Services
 
             return "Address set as default successfully.";
         }
+        
+        public async Task<string> SubmitContactFormAsync(AddContactDto contact)
+        {
+            var contactEntity = new Contact
+            {
+                Name = contact.Name,
+                Email = contact.Email,
+                Message = contact.Message
+            };
+
+            await _context.Contacts.AddAsync(contactEntity);
+            await _context.SaveChangesAsync();
+
+            return "Contact form submitted successfully.";
+        }
     }
 }

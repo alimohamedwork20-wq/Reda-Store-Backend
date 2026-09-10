@@ -3,13 +3,13 @@ using Reda.Entities;
 
 namespace Reda.Interfaces
 {
-    public interface IWebServices
+    public interface IAdminServices
     {
-        Task<string> SubmitContactFormAsync(Contact contact);
+        
         Task<List<UserDto>> GetAllUsersAsync();
-        Task<string> UpdateUserAsync(UserDto userDto);
+        Task<string> UpdateUserAsync(UpdateUserDto userDto);
         Task<string> DeleteUserAsync(int id);
-        Task<string> AddUserAsync(UserDto user);
+        Task<string> AddUserAsync(AddUserDto user);
         Task<List<Contact>> GetContactsAsync();
         Task<string> DeleteContactAsync(int id);
         Task<bool> ReadingContactAsync(int id);

@@ -2,6 +2,6 @@
 {
     public interface ISendCodeToEmail
     {
-        Task<string> SendCodeToEmailAsync(string email);
+        Task<string> SendCodeToEmailAsync(string email,string action);
     }
 }

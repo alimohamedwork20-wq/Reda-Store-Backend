@@ -64,7 +64,7 @@ builder.Services.AddScoped<IProductService, ProductService>();
 builder.Services.AddScoped<IAccountService, AccountService>();
 builder.Services.AddScoped<INotificationService, EmailNotificationService>();
 builder.Services.AddScoped<ISendCodeToEmail, SendCodeToEmailService>();
-builder.Services.AddScoped<IWebServices, WebServices>();
+builder.Services.AddScoped<IAdminServices, AdminServices>();
 builder.Services.AddScoped<IFileServices, FileServices>();
 var app = builder.Build();
 

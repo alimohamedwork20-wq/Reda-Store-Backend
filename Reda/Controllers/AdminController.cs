@@ -8,45 +8,17 @@ using Reda.Interfaces;
 namespace Reda.Controllers
 {
     [ApiController]
+    [Authorize(Roles = "Admin")]
     [Route("api/[controller]")]
-    public class WebServicesController : ControllerBase
+    public class AdminController : ControllerBase
     {
-        private readonly IWebServices _webServices;
-        private readonly IFileServices _fileServices;
+        private readonly IAdminServices _webServices;
 
-        public WebServicesController(
-            IWebServices webServices,
-            IFileServices fileServices)
+        public AdminController(IAdminServices webServices)
         {
             _webServices = webServices;
-            _fileServices = fileServices;
         }
 
-        [Authorize]
-        [HttpPost("submit-contact-form")]
-        public async Task<IActionResult> SubmitContactForm(
-            [FromBody] Contact contact)
-        {
-            var result =
-                await _webServices.SubmitContactFormAsync(contact);
-
-            return Ok(result);
-        }
-
-        [Authorize]
-        [HttpPost("submit-report")]
-        public async Task<IActionResult> SubmitReport(
-            [FromForm] ReportDto reportDto)
-        {
-            var result =
-                await _fileServices.UploadReportAsync(
-                    reportDto,
-                    User.GetUserId());
-
-            return Ok(result);
-        }
-
-        [Authorize]
         [HttpGet("get-users")]
         public async Task<IActionResult> GetAllUsers()
         {
@@ -55,10 +27,8 @@ namespace Reda.Controllers
             return Ok(users);
         }
 
-        [Authorize]
         [HttpPut("update-user")]
-        public async Task<IActionResult> UpdateUser(
-            [FromBody] UserDto userDto)
+        public async Task<IActionResult> UpdateUser([FromBody] UpdateUserDto userDto)
         {
             var result =
                 await _webServices.UpdateUserAsync(userDto);
@@ -66,7 +36,6 @@ namespace Reda.Controllers
             return Ok(result);
         }
 
-        [Authorize]
         [HttpDelete("delete-user/{id}")]
         public async Task<IActionResult> DeleteUser(int id)
         {
@@ -76,10 +45,8 @@ namespace Reda.Controllers
             return Ok(result);
         }
 
-        [Authorize]
         [HttpPost("add-user")]
-        public async Task<IActionResult> AddUser(
-            [FromBody] UserDto userDto)
+        public async Task<IActionResult> AddUser([FromBody] AddUserDto userDto)
         {
             var result =
                 await _webServices.AddUserAsync(userDto);
@@ -87,7 +54,6 @@ namespace Reda.Controllers
             return Ok(result);
         }
 
-        [Authorize]
         [HttpGet("get-contacts")]
         public async Task<IActionResult> GetContacts()
         {
@@ -97,7 +63,6 @@ namespace Reda.Controllers
             return Ok(result);
         }
 
-        [Authorize]
         [HttpDelete("delete-contact/{id}")]
         public async Task<IActionResult> DeleteContacts(int id)
         {
@@ -107,10 +72,8 @@ namespace Reda.Controllers
             return Ok(result);
         }
 
-        [Authorize]
         [HttpPost("read-contact")]
-        public async Task<IActionResult> ReadingContact(
-            [FromBody] ChangeContactDto model)
+        public async Task<IActionResult> ReadingContact([FromBody] ChangeContactDto model)
         {
             var result =
                 await _webServices.ReadingContactAsync(
@@ -119,10 +82,8 @@ namespace Reda.Controllers
             return Ok(result);
         }
 
-        [Authorize]
         [HttpPost("unread-contact")]
-        public async Task<IActionResult> UnReadingContact(
-            [FromBody] ChangeContactDto model)
+        public async Task<IActionResult> UnReadingContact([FromBody] ChangeContactDto model)
         {
             var result =
                 await _webServices.UnReadingContactAsync(
@@ -131,10 +92,8 @@ namespace Reda.Controllers
             return Ok(result);
         }
 
-        [Authorize]
         [HttpPost("reply-contact")]
-        public async Task<IActionResult> ReplyContact(
-            [FromBody] ChangeContactDto model)
+        public async Task<IActionResult> ReplyContact([FromBody] ChangeContactDto model)
         {
             var result =
                 await _webServices.ReplyContactAsync(
@@ -144,7 +103,6 @@ namespace Reda.Controllers
             return Ok(result);
         }
 
-        [Authorize]
         [HttpGet("get-all-reports")]
         public async Task<IActionResult> GetAllReports()
         {
@@ -154,7 +112,6 @@ namespace Reda.Controllers
             return Ok(reports);
         }
 
-        [Authorize]
         [HttpPost("accept-report/{id}")]
         public async Task<IActionResult> AcceptReport(int id)
         {
@@ -166,7 +123,6 @@ namespace Reda.Controllers
             });
         }
 
-        [Authorize]
         [HttpPost("reject-report/{id}")]
         public async Task<IActionResult> RejectReport(int id)
         {
@@ -178,7 +134,6 @@ namespace Reda.Controllers
             });
         }
 
-        [Authorize]
         [HttpDelete("delete-report/{id}")]
         public async Task<IActionResult> DeleteReport(int id)
         {

@@ -6,6 +6,7 @@
         public string Code { get; set; }
         public string Email { get; set; }
         public bool IsUsed { get; set; } = false;
+        public string Action { get; set; } = string.Empty;
         public DateTime CreatedAt { get; set; } = DateTime.Now;
     }
 }

@@ -71,7 +71,7 @@ namespace Reda.Controllers
         {
             var result =
                 await _userService.SendCodeToEmailAsync(
-                    model.Email, "ResetPassword");
+                    model.Email, "resetPassword");
 
             return Ok(result);
         }

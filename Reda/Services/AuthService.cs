@@ -13,26 +13,22 @@ namespace Reda.Services
         private readonly AppDbContext _context;
         private readonly ITokenService _token;
         private readonly ISendCodeToEmail _sendCodeToEmail;
-        private readonly IValidator<RegisterDto> _validatorR;
-        private readonly IValidator<LoginDto> _validatorL;
+
         public AuthService(
             AppDbContext context,
             ITokenService token,
-            ISendCodeToEmail sendCodeToEmail,   
-            IValidator<RegisterDto> validatorR,
-            IValidator<LoginDto> validatorL
+            ISendCodeToEmail sendCodeToEmail
+
             )
         {
             _context = context;
             _token = token;
             _sendCodeToEmail = sendCodeToEmail;
-            _validatorR = validatorR;
-            _validatorL = validatorL;
+
         }
 
         public async Task<object> LoginAsync(LoginDto model)
         {
-            await _validatorL.ValidateAndThrowAsync(model);
             model.EmailOrPhone = model.EmailOrPhone?.Trim();
             model.Password = model.Password?.Trim();
 
@@ -105,7 +101,6 @@ namespace Reda.Services
 
         public async Task<User> RegisterAsync(RegisterDto model)
         {
-            await _validatorR.ValidateAndThrowAsync(model);
             var exists = await _context.Users
                 .AnyAsync(u => u.Email == model.Email);
 
@@ -169,7 +164,7 @@ namespace Reda.Services
                             .FirstOrDefaultAsync();
             if(code == null || !code.IsUsed)
             {
-                throw new BadRequestException("Invalid");
+                throw new BadRequestException("Invalid or unverified OTP.");
             }
             var user = await _context.Users
                 .FirstOrDefaultAsync(u => u.Email == model.Email);

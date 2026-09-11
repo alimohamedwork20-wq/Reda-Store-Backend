@@ -3,31 +3,65 @@ using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.IdentityModel.Tokens;
 using Reda.Data;
+using Reda.Filters;
 using Reda.Interfaces;
 using Reda.Middlware;
 using Reda.Services;
 using Reda.Validators;
 using System.Text;
 
-
 var builder = WebApplication.CreateBuilder(args);
 
-// 1. إضافة الـ Controllers والـ Swagger مع ضبط الـ JSON لمنع الـ Cycles
-builder.Services.AddControllers()
-    .AddJsonOptions(options =>
-    {
-        options.JsonSerializerOptions.ReferenceHandler = System.Text.Json.Serialization.ReferenceHandler.IgnoreCycles;
-    });
+
+// ===============================
+// Controllers + JSON + Validation Filter
+// ===============================
+
+builder.Services.AddControllers(options =>
+{
+    // تشغيل ValidationFilter على جميع الـ Controllers
+    options.Filters.Add<ValidationFilter>();
+})
+.AddJsonOptions(options =>
+{
+    options.JsonSerializerOptions.ReferenceHandler =
+        System.Text.Json.Serialization.ReferenceHandler.IgnoreCycles;
+});
+
+
+// ===============================
+// Swagger
+// ===============================
 
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen();
+
+
+// ===============================
+// FluentValidation
+// ===============================
+
+// تسجيل جميع الـ Validators الموجودة في المشروع
 builder.Services.AddValidatorsFromAssemblyContaining<ValidationRegister>();
-// 2. جلب المفتاح السري من ملف appsettings.json ديناميكياً وضبط الـ JWT Authentication
+
+
+// تسجيل الـ ValidationFilter
+builder.Services.AddScoped<ValidationFilter>();
+
+
+// ===============================
+// JWT Authentication
+// ===============================
+
 var jwtKey = builder.Configuration["Jwt:Key"];
+
 builder.Services.AddAuthentication(options =>
 {
-    options.DefaultAuthenticateScheme = JwtBearerDefaults.AuthenticationScheme;
-    options.DefaultChallengeScheme = JwtBearerDefaults.AuthenticationScheme;
+    options.DefaultAuthenticateScheme =
+        JwtBearerDefaults.AuthenticationScheme;
+
+    options.DefaultChallengeScheme =
+        JwtBearerDefaults.AuthenticationScheme;
 })
 .AddJwtBearer(options =>
 {
@@ -35,55 +69,112 @@ builder.Services.AddAuthentication(options =>
     {
         ValidateIssuer = false,
         ValidateAudience = false,
+
         ValidateLifetime = true,
+
         ValidateIssuerSigningKey = true,
-        IssuerSigningKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(jwtKey))
+
+        IssuerSigningKey = new SymmetricSecurityKey(
+            Encoding.UTF8.GetBytes(jwtKey!)
+        )
     };
 });
 
-// 3. قراءة الـ Connection String من ملف appsettings.json وتسجيل قاعدة البيانات
-builder.Services.AddDbContext<AppDbContext>(options =>
-    options.UseSqlServer(builder.Configuration.GetConnectionString("DefaultConnection")));
 
-// 4. تحديد صلاحيات الـ CORS وسماح للدومين المخصص لـ React فقط
+// ===============================
+// Database
+// ===============================
+
+builder.Services.AddDbContext<AppDbContext>(options =>
+    options.UseSqlServer(
+        builder.Configuration.GetConnectionString("DefaultConnection")
+    ));
+
+
+// ===============================
+// CORS
+// ===============================
+
 builder.Services.AddCors(options =>
 {
     options.AddPolicy("AllowReact", policy =>
     {
-        policy.WithOrigins(new[] { "http://localhost:3000", "https://reda-store-five.vercel.app" })
-              .AllowAnyMethod()
-              .AllowAnyHeader();
+        policy
+            .WithOrigins(
+                "http://localhost:3000",
+                "https://reda-store-five.vercel.app"
+            )
+            .AllowAnyMethod()
+            .AllowAnyHeader();
     });
 });
 
-// 5. تسجيل الخدمات (Dependency Injection)
+
+// ===============================
+// Problem Details
+// ===============================
+
+builder.Services.AddProblemDetails();
+
+
+// ===============================
+// Dependency Injection
+// ===============================
+
 builder.Services.AddScoped<IAuthService, AuthService>();
 builder.Services.AddScoped<ITokenService, TokenService>();
-builder.Services.AddProblemDetails();
 builder.Services.AddScoped<IProductService, ProductService>();
 builder.Services.AddScoped<IAccountService, AccountService>();
 builder.Services.AddScoped<INotificationService, EmailNotificationService>();
 builder.Services.AddScoped<ISendCodeToEmail, SendCodeToEmailService>();
 builder.Services.AddScoped<IAdminServices, AdminServices>();
 builder.Services.AddScoped<IFileServices, FileServices>();
+
+
+// ===============================
+// Build
+// ===============================
+
 var app = builder.Build();
 
-// 6. إعدادات خط سير البيانات (HTTP Request Pipeline)
+
+// ===============================
+// Swagger
+// ===============================
+
 if (app.Environment.IsDevelopment())
 {
     app.UseSwagger();
     app.UseSwaggerUI();
 }
 
+
+// ===============================
+// HTTP Request Pipeline
+// ===============================
+
 app.UseHttpsRedirection();
+
+
+// Exception Middleware
 app.UseMiddleware<ExceptionMiddleware>();
-// تفعيل الـ CORS بالسياسة المحددة (قبل الـ Authentication)
+
+
+// CORS
 app.UseCors("AllowReact");
 
-// --- الترتيب هنا إجباري وحاسم جداً لحماية الـ APIs ---
-app.UseAuthentication(); // 1. التحقق من التوكن والهوية أولاً
-app.UseAuthorization();  // 2. التحقق من الصلاحيات والـ [Authorize] ثانياً
 
+// Authentication
+app.UseAuthentication();
+
+
+// Authorization
+app.UseAuthorization();
+
+
+// Controllers
 app.MapControllers();
 
+
+// Run
 app.Run();

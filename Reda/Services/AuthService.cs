@@ -71,8 +71,19 @@ namespace Reda.Services
                 throw new UnauthorizedException(
                     "Your account is inactive. Please contact support.");
             }
+            
+            if(user.TwoFactor)
+            {
+                await _sendCodeToEmail.SendCodeToEmailAsync(user.Email, "twoFactor");
+                return new
+                {
+                    Status = user.Status,
+                    Email = user.Email,
+                    Two_Factor = true,
+                    Message = "Two-factor authentication is enabled. Please verify the code sent to your email."
+                };
+            }
             var token = _token.CreateToken(user);
-
             return new
             {
                 Token = token,
@@ -137,22 +148,51 @@ namespace Reda.Services
                 .SendCodeToEmailAsync(email, action);
         }
 
-        public async Task<bool> CheckOtpAsync(CheckOtpDto model)
+        public async Task<object> CheckOtpAsync(CheckOtpDto model)
         {
             var code = await _context.Otps
-                .Where(o => o.Email == model.Email && o.Action == model.Action)
+                .Where(o => o.Email == model.Email &&
+                            o.Action == model.Action)
                 .OrderByDescending(o => o.CreatedAt)
                 .FirstOrDefaultAsync();
 
             if (code == null ||
                 code.Code != model.Code ||
-                code.IsUsed || DateTime.UtcNow > code.CreatedAt.AddMinutes(10))
+                code.IsUsed ||
+                DateTime.UtcNow > code.CreatedAt.AddMinutes(10))
             {
-                throw new BadRequestException(
-                    "Invalid OTP code.");
+                throw new BadRequestException("Invalid OTP code.");
             }
+
+            if (code.Action == "twoFactor")
+            {
+                var user = await _context.Users
+                    .FirstOrDefaultAsync(u => u.Email == model.Email);
+
+                if (user == null)
+                    throw new NotFoundException("User not found.");
+
+                code.IsUsed = true;
+                await _context.SaveChangesAsync();
+
+                var token = _token.CreateToken(user);
+
+                return new
+                {
+                    Token = token,
+                    Name = user.Name,
+                    Role = user.Role,
+                    Email = user.Email,
+                    Phone = user.Phone,
+                    Avatar = user.ProfileImageUrl,
+                    Two_Factor = user.TwoFactor,
+                    Status = user.Status
+                };
+            }
+
             code.IsUsed = true;
             await _context.SaveChangesAsync();
+
             return true;
         }
 

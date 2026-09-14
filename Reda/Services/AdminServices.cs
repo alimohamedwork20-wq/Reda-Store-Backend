@@ -29,6 +29,7 @@ namespace Reda.Services
                     Role = u.Role,
                     Status = u.Status
                 })
+                .AsNoTracking()
                 .ToListAsync();
         }
 

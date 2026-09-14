@@ -83,8 +83,9 @@ namespace Reda.Services
             await _authService.CheckOtpAsync(
                 new CheckOtpDto
                 {
-                    Email = email,
-                    Code = code
+                    Email = user.Email,
+                    Code = code,
+                    Action = "changeEmail"
                 });
 
             user.Email = email;
@@ -105,8 +106,9 @@ namespace Reda.Services
             await _authService.CheckOtpAsync(
                 new CheckOtpDto
                 {
-                    Email = email,
-                    Code = code
+                    Email = user.Email,
+                    Code = code,
+                    Action = "changePhone"
                 });
             var phoneExists = await _context.Users.AnyAsync(u => u.Phone == phone && u.Id != id);
 
